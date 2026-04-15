@@ -12,20 +12,27 @@ const client = new Anthropic({
 })
 
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const { notes } = req.body
+
+  if (!notes || !notes.trim()) {
+    return res.status(400).json({ error: 'Notes are required' })
+  }
+
+  // SSE headers — keep connection open for streaming
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders()
+
   try {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' })
-    }
-
-    const { notes } = req.body
-
-    if (!notes || !notes.trim()) {
-      return res.status(400).json({ error: 'Notes are required' })
-    }
-
-    const message = await client.messages.create({
+    const stream = await client.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 1024,
+      stream: true,
       messages: [
         {
           role: 'user',
@@ -53,12 +60,18 @@ ${notes}`,
       ],
     })
 
-    const raw = message.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-    const parsed = JSON.parse(raw)
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        // JSON-encode each chunk so newlines inside text don't break SSE framing
+        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
+      }
+    }
 
-    return res.status(200).json(parsed)
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`)
+    res.end()
   } catch (err) {
     console.error('API error:', err)
-    return res.status(500).json({ error: err.message || 'Internal server error' })
+    res.write(`data: ${JSON.stringify({ error: err.message || 'Internal server error' })}\n\n`)
+    res.end()
   }
 }
