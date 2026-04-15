@@ -31,6 +31,11 @@ export default async function handler(req, res) {
           role: 'user',
           content: `You are a study assistant. Based on the following notes, generate exactly 5 flashcards.
 
+Rules:
+- Each question must be 10 words or fewer
+- Each answer must be 15 words or fewer
+- Be concise and direct — no filler words
+
 Return ONLY a valid JSON object in this exact format, with no extra text, markdown, or explanation:
 {
   "flashcards": [

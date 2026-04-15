@@ -125,19 +125,17 @@ h1 {
   gap: 20px;
 }
 
-/* Flashcard flip
-   Uses CSS grid stacking so the card height grows with content.
-   Both faces occupy the same grid cell (1/1), so the tallest
-   face sets the container height automatically. */
+/* Flashcard flip */
 .flashcard {
+  height: 200px;
   perspective: 1000px;
   cursor: pointer;
-  min-height: 160px;
 }
 
 .flashcard-inner {
-  display: grid;
+  position: relative;
   width: 100%;
+  height: 100%;
   transform-style: preserve-3d;
   transition: transform 0.5s ease;
 }
@@ -148,18 +146,19 @@ h1 {
 
 .flashcard-front,
 .flashcard-back {
-  /* Stack both faces in the same grid cell */
-  grid-area: 1 / 1;
+  position: absolute;
+  width: 100%;
+  height: 100%;
   backface-visibility: hidden;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
   padding: 24px 20px;
   box-sizing: border-box;
   text-align: center;
+  overflow: hidden;
 }
 
 /* Card front: pink background, burgundy text */
